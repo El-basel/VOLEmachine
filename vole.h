@@ -1,14 +1,20 @@
+#include <iostream>
+#include <sstream>
 #include <string>
+#include <stdexcept>
+using namespace std;
+
 #ifndef VOLE_H
 #define VOLE_H
+
 class Register
 {
 private:
     int memory[16]{};
     int size = 16;
 public:
-    int getCell(int);
-    void setCell(int, int);
+    int getCell(int index);
+    void setCell(int index, int value);
 
 };
 
@@ -37,10 +43,10 @@ public:
 class ALU
 {
 public:
-    std::string hexToDec();
-    std::string decToHex();
-    bool isValid(std::string);
-    void add(int, int, int, Register&);
+    std::string hexToDec(const string& hexString);
+    std::string decToHex(const int& decNumber);
+    bool isValid(const string& hexString);
+    void add(int x1, int x2, int resultx, Register& reg);
 };
 
 class CPU
