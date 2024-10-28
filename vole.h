@@ -64,9 +64,9 @@ private:
     Memory memory;
 
 public:
-    void loadProgramFile(std::string&);
+    bool loadProgramFile(std::string&);
     void fetch();
-    int decode(std::string);
+    int decode(char);
     void execute();
     void outputState();
 };
@@ -75,11 +75,9 @@ class MainUI
 {
 private:
     Machine machine;
-    std::string fileName;
-    bool enterFileOrInstruction;
+    std::string fileName{};
 public:
-    bool getFileOrInstruction();
-    void displayMenu();
+    int displayMenu();
     void inputFileName();
     char inputChoice();
 };

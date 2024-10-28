@@ -1,5 +1,21 @@
 #include <fstream>
+#include <iostream>
+#include <limits>
+#include <string>
+#include <iomanip>
 #include "vole.h"
+
+bool inputStreamFailing()
+{
+    if(std::cin.fail())
+    {
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+        return true;
+    }
+    return false;
+}
+
 // Register class
 int Register::getCell(int index) {
     if (index < 0 || index >= size) {
@@ -43,7 +59,7 @@ int ALU::hexToDec(const string& hexString) {
     stringstream ss;
     ss << hex << hexString;
     ss >> dec;
-    return to_string(dec);
+    return dec;
 }
 
 string ALU::decToHex(const int& decNumber) {
@@ -72,14 +88,19 @@ void ALU::add(int x1, int x2, int resultx, Register& reg) {
 
 // Machine class
 
-void Machine::loadProgramFile(std::string& file) {
+bool Machine::loadProgramFile(std::string& file) {
     programFile.open(file);
     std::string instruction;
+    if(!programFile)
+    {
+        return false;
+    }
     while(!programFile.eof())
     {
         programFile >> instruction;
         memory.instructionMemory.push_back(instruction);
     }
+    return true;
 }
 
 void Machine::fetch() {
@@ -87,11 +108,13 @@ void Machine::fetch() {
     ++programCounter;
 }
 
-int Machine::decode(std::string instruction) {
-    return alu.hexToDec(instruction);
+int Machine::decode(const char instruction) {
+    std::string tmp {instruction};
+    return alu.hexToDec(tmp);
 }
 
 void Machine::execute() {
+    fetch();
     int operation   = decode(instructionRegister[0]);
     int register1   = decode(instructionRegister[1]);
     int register2   = decode(instructionRegister[2]);
@@ -106,7 +129,7 @@ void Machine::execute() {
             cu.load(register1, pattern, registers);
             break;
         case 3:
-            cu.store(register1, pattern, registers);
+            cu.store(register1, pattern, registers, memory);
             break;
         case 4:
             cu.move(register2, register3, registers);
@@ -136,12 +159,65 @@ void Machine::outputState() {
 
     std::cout << "Memory: ";
     for (int i = 0; i < 256; ++i) {
-        if(i % 5 == 0)
+        if(i % 8 == 0)
         {
             std::cout << '\n';
         }
+        std::cout << std::setw(3) << std::setfill(' ');
         std::cout << memory.getCell(i) << ' ';
     }
     std::cout << '\n';
 }
 // End of Machine class
+
+// MainUI class
+
+int MainUI::displayMenu() {
+    std::cout << "a. Enter program file\n";
+    std::cout << "b. Display machine state\n";
+    if(!fileName.empty())
+    {
+        std::cout << "c. Execute an instruction\n";
+    }
+    std::cout << "d. Exit machine\n";
+    char choice = inputChoice();
+    switch (choice) {
+        case 'a':
+            inputFileName();
+            break;
+        case 'b':
+            machine.outputState();
+            break;
+        case 'c':
+            machine.execute();
+            break;
+        case 'd':
+            std::cout << "VOLE shutting down\n";
+            return 0;
+    }
+    return 1;
+}
+
+void MainUI::inputFileName() {
+    std::cout << "Enter program file name: ";
+    std::cin >> fileName;
+    if(!machine.loadProgramFile(fileName))
+    {
+        std::cout << "File doesn't exist\n";
+        return;
+    }
+    std::cout << "File loaded successfully\n";
+}
+
+char MainUI::inputChoice() {
+    char choice;
+    std::cout << "Enter your choice: ";
+    std::cin >> choice;
+    while (inputStreamFailing() or choice < 'a' or choice > 'd')
+    {
+        std::cout << "Please choose an option for the above only\n";
+        std::cout << "Enter your choice: ";
+        std::cin >> choice;
+    }
+    return choice;
+}
