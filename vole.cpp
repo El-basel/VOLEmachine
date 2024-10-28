@@ -1,5 +1,6 @@
+#include <fstream>
 #include "vole.h"
-
+// Register class
 int Register::getCell(int index) {
     if (index < 0 || index >= size) {
         throw out_of_range("Index out of bounds");
@@ -13,8 +14,31 @@ void Register::setCell(int index, int value) {
     }
     memory[index] = value;
 }
+// End of Register class
 
-string ALU::hexToDec(const string& hexString) {
+// Memory class
+Memory::Memory() {
+    for (int i = 0; i < size; ++i) {
+        memory[i] = "00";
+    }
+}
+
+std::string Memory::getCell(int index) {
+    if(index < 0 || index >= size)
+    {
+        throw out_of_range("Index out of bounds");
+    }
+    return memory[index];
+}
+
+void Memory::setCell(int index, std::string value) {
+    memory[index] = value;
+}
+
+// End of Memory class
+
+// ALU class
+int ALU::hexToDec(const string& hexString) {
     int dec;
     stringstream ss;
     ss << hex << hexString;
@@ -44,3 +68,80 @@ void ALU::add(int x1, int x2, int resultx, Register& reg) {
     int sumx = val1 + val2;
     reg.setCell(resultx, sumx);
 }
+// End of ALU class
+
+// Machine class
+
+void Machine::loadProgramFile(std::string& file) {
+    programFile.open(file);
+    std::string instruction;
+    while(!programFile.eof())
+    {
+        programFile >> instruction;
+        memory.instructionMemory.push_back(instruction);
+    }
+}
+
+void Machine::fetch() {
+    instructionRegister = memory.instructionMemory[programCounter];
+    ++programCounter;
+}
+
+int Machine::decode(std::string instruction) {
+    return alu.hexToDec(instruction);
+}
+
+void Machine::execute() {
+    int operation   = decode(instructionRegister[0]);
+    int register1   = decode(instructionRegister[1]);
+    int register2   = decode(instructionRegister[2]);
+    int register3   = decode(instructionRegister[3]);
+    int memoryCell  = decode(instructionRegister[2] + instructionRegister[3]);
+    int pattern     = decode(instructionRegister[2] + instructionRegister[3]);
+    switch (operation) {
+        case 1:
+            cu.load(register1, memoryCell, registers, memory);
+            break;
+        case 2:
+            cu.load(register1, pattern, registers);
+            break;
+        case 3:
+            cu.store(register1, pattern, registers);
+            break;
+        case 4:
+            cu.move(register2, register3, registers);
+            break;
+        case 5:
+            alu.add(register2, register3, register1, registers);
+            break;
+        case 6:
+             alu.add(register2, register3, register1, registers);
+        case 11:
+            cu.jump(register1, memoryCell, registers, programCounter);
+            break;
+        case 12:
+            outputState();
+            cu.halt();
+    }
+}
+
+void Machine::outputState() {
+    std::cout << "Program Counter: " << programCounter << '\n';
+    std::cout << "Instruction Register: " << instructionRegister << '\n';
+    std::cout << "Registers: ";
+    for (int i = 0; i < 16; ++i) {
+        std::cout << "R" << i << " = " << registers.getCell(i) << ' ';
+    }
+    std::cout << '\n';
+
+    std::cout << "Memory: ";
+    for (int i = 0; i < 256; ++i) {
+        if(i % 5 == 0)
+        {
+            std::cout << '\n';
+        }
+        std::cout << memory.getCell(i) << ' ';
+    }
+    std::cout << '\n';
+}
+// End of Machine class

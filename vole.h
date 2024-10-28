@@ -2,6 +2,8 @@
 #include <sstream>
 #include <string>
 #include <stdexcept>
+#include <fstream>
+#include <vector>
 using namespace std;
 
 #ifndef VOLE_H
@@ -15,7 +17,6 @@ private:
 public:
     int getCell(int index);
     void setCell(int index, int value);
-
 };
 
 class Memory
@@ -24,8 +25,10 @@ private:
     std::string memory[256]{};
     int size = 256;
 public:
-    int getCell(int);
-    void setCell(int, int);
+    Memory();
+    std::string getCell(int);
+    void setCell(int, std::string);
+    std::vector<std::string> instructionMemory;
 };
 
 class CU
@@ -43,33 +46,28 @@ public:
 class ALU
 {
 public:
-    std::string hexToDec(const string& hexString);
+    int hexToDec(const string& hexString);
     std::string decToHex(const int& decNumber);
     bool isValid(const string& hexString);
     void add(int x1, int x2, int resultx, Register& reg);
 };
 
-class CPU
+class Machine
 {
 private:
+    std::fstream programFile;
     int programCounter{};
     std::string instructionRegister{};
     Register registers;
     ALU alu;
     CU cu;
-public:
-    void fetch(Memory&);
-    void decode();
-    void execute(Register&, Memory&);
-};
-
-class Machine
-{
-private:
-    CPU processor;
     Memory memory;
+
 public:
-    void loadProgramFile();
+    void loadProgramFile(std::string&);
+    void fetch();
+    int decode(std::string);
+    void execute();
     void outputState();
 };
 
@@ -82,7 +80,7 @@ private:
 public:
     bool getFileOrInstruction();
     void displayMenu();
-    std::string inputFileName();
+    void inputFileName();
     char inputChoice();
 };
 
