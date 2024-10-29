@@ -2,5 +2,8 @@
 #include "vole.h"
 int main() {
 	MainUI menu;
-	menu.displayMenu();
+	while(menu.displayMenu())
+    {
+
+    }
 }

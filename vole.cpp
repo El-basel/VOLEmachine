@@ -150,19 +150,18 @@ void Machine::fetch() {
     ++programCounter;
 }
 
-int Machine::decode(const char instruction) {
-    std::string tmp {instruction};
-    return alu.hexToDec(tmp);
+int Machine::decode(std::string instruction) {
+    return alu.hexToDec(instruction);
 }
 
 void Machine::execute() {
     fetch();
-    int operation   = decode(instructionRegister[0]);
-    int register1   = decode(instructionRegister[1]);
-    int register2   = decode(instructionRegister[2]);
-    int register3   = decode(instructionRegister[3]);
-    int memoryCell  = decode(instructionRegister[2] + instructionRegister[3]);
-    int pattern     = decode(instructionRegister[2] + instructionRegister[3]);
+    int operation   = decode(string{instructionRegister[0]});
+    int register1   = decode(string{instructionRegister[1]});
+    int register2   = decode(string{instructionRegister[2]});
+    int register3   = decode(string{instructionRegister[3]});
+    int memoryCell  = decode(instructionRegister.substr(2));
+    int pattern     = decode(instructionRegister.substr(2));
     switch (operation) {
         case 1:
             cu.load(register1, memoryCell, registers, memory);
@@ -195,19 +194,23 @@ void Machine::outputState() {
     std::cout << "Program Counter: " << programCounter << '\n';
     std::cout << "Instruction Register: " << instructionRegister << '\n';
     std::cout << "Registers: ";
+    std::string cell{};
     for (int i = 0; i < 16; ++i) {
-        std::cout << "R" << i << " = " << registers.getCell(i) << ' ';
+        cell = alu.decToHex(registers.getCell(i));
+        std::cout << "R" << i << " = " << (cell.length() == 1? "0" : "") << cell << ' ';
     }
     std::cout << '\n';
 
     std::cout << "Memory: ";
     for (int i = 0; i < 256; ++i) {
+        cell = memory.getCell(i);
         if(i % 8 == 0)
         {
             std::cout << '\n';
         }
-        std::cout << std::setw(3) << std::setfill(' ');
-        std::cout << memory.getCell(i) << ' ';
+        std::cout << std::setw(4) << std::setfill(' ');
+        std::cout << (cell.length() == 1? "0" + cell : "" + cell) << ' ';
+//        std::cout << cell ;
     }
     std::cout << '\n';
 }

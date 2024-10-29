@@ -72,7 +72,7 @@ private:
 public:
     bool loadProgramFile(std::string&);
     void fetch();
-    int decode(char);
+    int decode(std::string);
     void execute();
     void outputState();
 };
