@@ -17,6 +17,9 @@ bool inputStreamFailing()
 }
 
 // Register class
+Register::Register() {
+    std::fill(std::begin(memory), std::end(memory), 0.0);
+}
 double Register::getCell(int index) {
     if (index < 0 || index >= size) {
         throw out_of_range("Index out of bounds");
@@ -37,7 +40,9 @@ void Register::setCell(int index, double value) {
     }
     memory[index] = value;
 }
-
+void Register::reset() {
+    std::fill(std::begin(memory), std::end(memory), 0.0);
+}
 // End of Register class
 
 // Memory class
@@ -58,7 +63,10 @@ std::string Memory::getCell(int index) {
 void Memory::setCell(int index, std::string value) {
     memory[index] = value;
 }
-
+void Memory::reset() {
+    std::fill(std::begin(memory), std::end(memory), "00");
+    instructionMemory.clear();
+}
 // End of Memory class
 
 // ALU class
@@ -93,7 +101,33 @@ void ALU::add(int x1, int x2, int resultx, Register& reg) {
     reg.setCell(resultx, sumx);
 }
 // End of ALU class
-
+// CU class
+void CU::load(int reg1, int cell, Register& reg, Memory& mem) {
+    int num = alu.hexToDec(mem.getCell(cell));
+    reg.setCell(reg1, num);
+}
+void CU::load(int reg1, int num, Register& reg) {
+    reg.setCell(reg1, num);
+}
+void CU::store(int reg1, int loc, Register& reg, Memory& mem) {
+    if (loc == 0) {
+        std::cout << alu.decToHex(reg.getCell(reg1)) << '\n';
+    }
+    int num = reg.getCell(reg1);
+    mem.setCell(loc,alu.decToHex(num));
+}
+void CU::move(int reg1, int reg2, Register& reg) {
+    reg.setCell(reg2, reg.getCell(reg1));
+}
+void CU::jump(int reg1, int cell, Register& reg, int& counter) {
+    if (reg.getCell(reg1) == reg.getCell(0)) {
+        counter = cell;
+    }
+}
+void CU::halt(Register& reg,Memory& mem) {
+    reg.reset();
+    mem.reset();
+}
 // Machine class
 
 bool Machine::loadProgramFile(std::string& file) {
@@ -152,7 +186,8 @@ void Machine::execute() {
             break;
         case 12:
             outputState();
-            cu.halt();
+            cu.halt(registers,memory);
+            return;
     }
 }
 

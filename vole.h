@@ -15,9 +15,11 @@ private:
     double memory[16]{};
     int size = 16;
 public:
+    Register();
     double getCell(int index);
     void setCell(int index, int value);
     void setCell(int index, double value);
+    void reset();
 };
 
 class Memory
@@ -30,19 +32,9 @@ public:
     std::string getCell(int);
     void setCell(int, std::string);
     std::vector<std::string> instructionMemory;
+    void reset();
 };
 
-class CU
-{
-public:
-    void load(int, int, Register&, Memory&);
-    void load(int, int, Register&);
-    void store(int, int, Register&, Memory&);
-    void move(int, int, Register&);
-    void jump(int, int, Register&, int&);
-    void halt();
-
-};
 
 class ALU
 {
@@ -51,6 +43,19 @@ public:
     string decToHex(const int& decNumber);
     bool isValid(const string& hexString);
     void add(int x1, int x2, int resultx, Register& reg);
+};
+class CU
+{
+private:
+    ALU alu;
+public:
+    void load(int, int, Register&, Memory&);
+    void load(int, int, Register&);
+    void store(int, int, Register&, Memory&);
+    void move(int, int, Register&);
+    void jump(int, int, Register&, int&);
+    void halt(Register&,Memory&);
+
 };
 
 class Machine

@@ -1,6 +1,6 @@
 #include <iostream>
-
+#include "vole.h"
 int main() {
-    std::cout << "hello" << std::endl;
-    return 0;
+	MainUI menu;
+	menu.displayMenu();
 }
