@@ -12,11 +12,12 @@ using namespace std;
 class Register
 {
 private:
-    int memory[16]{};
+    double memory[16]{};
     int size = 16;
 public:
-    int getCell(int index);
+    double getCell(int index);
     void setCell(int index, int value);
+    void setCell(int index, double value);
 };
 
 class Memory
@@ -47,7 +48,7 @@ class ALU
 {
 public:
     int hexToDec(const string& hexString);
-    std::string decToHex(const int& decNumber);
+    string decToHex(const int& decNumber);
     bool isValid(const string& hexString);
     void add(int x1, int x2, int resultx, Register& reg);
 };

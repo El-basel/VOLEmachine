@@ -17,7 +17,7 @@ bool inputStreamFailing()
 }
 
 // Register class
-int Register::getCell(int index) {
+double Register::getCell(int index) {
     if (index < 0 || index >= size) {
         throw out_of_range("Index out of bounds");
     }
@@ -28,8 +28,16 @@ void Register::setCell(int index, int value) {
     if (index < 0 || index >= size) {
         throw out_of_range("Index out of bounds");
     }
+    memory[index] = static_cast<double>(value);
+}
+
+void Register::setCell(int index, double value) {
+    if (index < 0 || index >= size) {
+        throw out_of_range("Index out of bounds");
+    }
     memory[index] = value;
 }
+
 // End of Register class
 
 // Memory class
@@ -79,9 +87,9 @@ bool ALU::isValid(const string& hexString) {
 
 
 void ALU::add(int x1, int x2, int resultx, Register& reg) {
-    int val1 = reg.getCell(x1);
-    int val2 = reg.getCell(x2);
-    int sumx = val1 + val2;
+    double val1 = reg.getCell(x1);
+    double val2 = reg.getCell(x2);
+    double sumx = val1 + val2;
     reg.setCell(resultx, sumx);
 }
 // End of ALU class
