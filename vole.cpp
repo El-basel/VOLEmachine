@@ -127,6 +127,9 @@ void CU::jump(int reg1, int cell, Register& reg, int& counter) {
 void CU::halt(Register& reg,Memory& mem) {
     reg.reset();
     mem.reset();
+    std::cout << "--------------------\n";
+    std::cout << "| Program Finished |\n";
+    std::cout << "--------------------\n";
 }
 // Machine class
 
@@ -155,6 +158,11 @@ int Machine::decode(std::string instruction) {
 }
 
 void Machine::execute() {
+    if(memory.instructionMemory.empty())
+    {
+        std::cerr << "Please load a program first\n";
+        return;
+    }
     fetch();
     int operation   = decode(string{instructionRegister[0]});
     int register1   = decode(string{instructionRegister[1]});
@@ -210,7 +218,6 @@ void Machine::outputState() {
         }
         std::cout << std::setw(4) << std::setfill(' ');
         std::cout << (cell.length() == 1? "0" + cell : "" + cell) << ' ';
-//        std::cout << cell ;
     }
     std::cout << '\n';
 }
@@ -238,7 +245,9 @@ int MainUI::displayMenu() {
             machine.execute();
             break;
         case 'd':
-            std::cout << "VOLE shutting down\n";
+            std::cout << "----------------------\n";
+            std::cout << "| VOLE shutting down |\n";
+            std::cout << "----------------------\n";
             return 0;
     }
     return 1;
