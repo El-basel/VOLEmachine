@@ -39,10 +39,12 @@ public:
 class ALU
 {
 public:
-    int hexToDec(const string& hexString);
-    string decToHex(const int& decNumber);
+    int hexToDec(const string& hexString, bool);
+    double hexToFloat(const string&);
+    string decToHex(const double& decNumber);
     bool isValid(const string& hexString);
-    void add(int x1, int x2, int resultx, Register& reg);
+    void addDecimal(int x1, int x2, int resultx, Register& reg);
+    void addFloat(int x1, int x2, int resultx, Register& reg);
 };
 class CU
 {
@@ -50,7 +52,7 @@ private:
     ALU alu;
 public:
     void load(int, int, Register&, Memory&);
-    void load(int, int, Register&);
+    void load(int, double, Register&);
     void store(int, int, Register&, Memory&);
     void move(int, int, Register&);
     void jump(int, int, Register&, int&);
@@ -72,7 +74,7 @@ private:
 public:
     bool loadProgramFile(std::string&);
     void fetch();
-    int decode(std::string);
+    int decode(std::string, bool);
     void execute();
     void outputState();
 };

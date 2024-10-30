@@ -3,6 +3,9 @@
 #include <limits>
 #include <string>
 #include <iomanip>
+#include <bitset>
+#include <cmath>
+#include <cstdint>
 #include "vole.h"
 
 bool inputStreamFailing()
@@ -61,7 +64,11 @@ std::string Memory::getCell(int index) {
 }
 
 void Memory::setCell(int index, std::string value) {
-    memory[index] = value;
+    for (int i = 0; i < value.length(); i += 2) {
+        memory[index] = value.substr(i,2);
+        ++index;
+    }
+//    memory[index] = value;
 }
 void Memory::reset() {
     std::fill(std::begin(memory), std::end(memory), "00");
@@ -70,17 +77,54 @@ void Memory::reset() {
 // End of Memory class
 
 // ALU class
-int ALU::hexToDec(const string& hexString) {
+int ALU::hexToDec(const string& hexString, bool positiveOnly = false) {
     int dec;
     stringstream ss;
     ss << hex << hexString;
     ss >> dec;
+    if(hexString[0] > '7' and !positiveOnly)
+    {
+     dec -= 256;
+    }
     return dec;
 }
 
-string ALU::decToHex(const int& decNumber) {
+double ALU::hexToFloat(const std::string& hexString) {
+    long long signBit, exponent;
+    int decimal;
+    double mantissa = 0;
+    decimal = hexToDec(hexString, true);
+    std::bitset<8> bit{static_cast<unsigned long long>(decimal)};
+    signBit = bit[7];
+    std::bitset<3> extractedExponent;
+    for (int i = 4; i < 7; ++i) {
+        extractedExponent[i - 4] = bit[i];
+    }
+    exponent = static_cast<unsigned int>(extractedExponent.to_ulong());
+    exponent -= 3;
+    std::bitset<4> extractedMantissa;
+    for (int i = 0; i < 4; ++i) {
+        extractedMantissa[i] = bit[i];
+    }
+    double num = 0.5;
+    double divisor = 2;
+    for (int i = 3; i >= 0; --i) {
+        mantissa += extractedMantissa[i] * num;
+        num /= divisor;
+    }
+    mantissa += 1;
+    double value = std::pow(-1, signBit) * std::pow(2, exponent) * mantissa;
+    return value;
+}
+
+string ALU::decToHex(const double& decNumber) {
+    float number = decNumber;
+    if(decNumber < 0)
+    {
+        number += 256;
+    }
     stringstream ss;
-    ss << hex << uppercase << decNumber;
+    ss << hex << uppercase << static_cast<int>(number);
     return ss.str();
 }
 
@@ -94,9 +138,18 @@ bool ALU::isValid(const string& hexString) {
 }
 
 
-void ALU::add(int x1, int x2, int resultx, Register& reg) {
+void ALU::addDecimal(int x1, int x2, int resultx, Register& reg) {
     double val1 = reg.getCell(x1);
     double val2 = reg.getCell(x2);
+    double sumx = val1 + val2;
+    reg.setCell(resultx, sumx);
+}
+
+void ALU::addFloat(int x1, int x2, int resultx, Register& reg) {
+    std::string num = decToHex(reg.getCell(x1));
+    double val1 = hexToFloat(num);
+    num = decToHex(reg.getCell(x2));
+    double val2 = hexToFloat(num);
     double sumx = val1 + val2;
     reg.setCell(resultx, sumx);
 }
@@ -106,7 +159,7 @@ void CU::load(int reg1, int cell, Register& reg, Memory& mem) {
     int num = alu.hexToDec(mem.getCell(cell));
     reg.setCell(reg1, num);
 }
-void CU::load(int reg1, int num, Register& reg) {
+void CU::load(int reg1, double num, Register& reg) {
     reg.setCell(reg1, num);
 }
 void CU::store(int reg1, int loc, Register& reg, Memory& mem) {
@@ -153,8 +206,8 @@ void Machine::fetch() {
     ++programCounter;
 }
 
-int Machine::decode(std::string instruction) {
-    return alu.hexToDec(instruction);
+int Machine::decode(std::string instruction, bool positiveOnly = false) {
+    return alu.hexToDec(instruction,positiveOnly);
 }
 
 void Machine::execute() {
@@ -164,12 +217,12 @@ void Machine::execute() {
         return;
     }
     fetch();
-    int operation   = decode(string{instructionRegister[0]});
-    int register1   = decode(string{instructionRegister[1]});
-    int register2   = decode(string{instructionRegister[2]});
-    int register3   = decode(string{instructionRegister[3]});
-    int memoryCell  = decode(instructionRegister.substr(2));
-    int pattern     = decode(instructionRegister.substr(2));
+    int operation   = decode(string{instructionRegister[0]},true);
+    int register1   = decode(string{instructionRegister[1]},true);
+    int register2   = decode(string{instructionRegister[2]},true);
+    int register3   = decode(string{instructionRegister[3]},true);
+    int memoryCell  = decode(instructionRegister.substr(2,2),true);
+    int pattern     = decode(instructionRegister.substr(2,2));
     switch (operation) {
         case 1:
             cu.load(register1, memoryCell, registers, memory);
@@ -178,16 +231,16 @@ void Machine::execute() {
             cu.load(register1, pattern, registers);
             break;
         case 3:
-            cu.store(register1, pattern, registers, memory);
+            cu.store(register1, memoryCell, registers, memory);
             break;
         case 4:
             cu.move(register2, register3, registers);
             break;
         case 5:
-            alu.add(register2, register3, register1, registers);
+            alu.addDecimal(register2, register3, register1, registers);
             break;
         case 6:
-             alu.add(register2, register3, register1, registers);
+             alu.addFloat(register2, register3, register1, registers);
         case 11:
             cu.jump(register1, memoryCell, registers, programCounter);
             break;
