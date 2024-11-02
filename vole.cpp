@@ -8,17 +8,6 @@
 #include <cstdint>
 #include "vole.h"
 
-bool inputStreamFailing()
-{
-    if(std::cin.fail())
-    {
-        std::cin.clear();
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
-        return true;
-    }
-    return false;
-}
-
 // Register class
 Register::Register() {
     std::fill(std::begin(memory), std::end(memory), 0.0);
@@ -318,14 +307,14 @@ void MainUI::inputFileName() {
 }
 
 char MainUI::inputChoice() {
-    char choice;
+    string choice1;
     std::cout << "Enter your choice: ";
-    std::cin >> choice;
-    while (inputStreamFailing() or choice < 'a' or choice > 'd')
+    getline(std::cin, choice1);
+    while (choice1.size() != 1 or choice1[0] < 'a' or choice1[0] > 'd')
     {
-        std::cout << "Please choose an option for the above only\n";
+        std::cout << "Please choose an option from the above only\n";
         std::cout << "Enter your choice: ";
-        std::cin >> choice;
+        getline(std::cin, choice1);
     }
-    return choice;
+    return choice1[0];
 }
