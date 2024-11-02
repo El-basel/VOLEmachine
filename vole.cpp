@@ -8,6 +8,17 @@
 #include <cstdint>
 #include "vole.h"
 
+bool inputStreamFailing()
+{
+    if(std::cin.fail())
+    {
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+        return true;
+    }
+    return false;
+}
+
 // Register class
 Register::Register() {
     std::fill(std::begin(memory), std::end(memory), 0.0);
@@ -17,13 +28,6 @@ double Register::getCell(int index) {
         throw out_of_range("Index out of bounds");
     }
     return memory[index];
-}
-
-void Register::setCell(int index, int value) {
-    if (index < 0 || index >= size) {
-        throw out_of_range("Index out of bounds");
-    }
-    memory[index] = static_cast<double>(value);
 }
 
 void Register::setCell(int index, double value) {
@@ -107,6 +111,65 @@ double ALU::hexToFloat(const std::string& hexString) {
     return value;
 }
 
+std::string ALU::floatToHex(double number){
+    std::bitset<8> bits;
+    if(number < 0)
+    {
+        bits[7] = true;
+    }
+    else
+    {
+        bits[7] = false;
+    }
+    int integerPart = std::abs(static_cast<int>(number));
+    std::string integerBinary = "";
+    while (integerPart > 0)
+    {
+        integerBinary = std::to_string(integerPart % 2) + integerBinary;
+        integerPart /= 2;
+    }
+    int exponent = 3;
+    int i = 0;
+    for (; i < integerBinary.length() ; ++i) {
+        if(integerBinary[i] == '1')
+        {
+            exponent += integerBinary.length() - (i + 1);
+            break;
+        }
+    }
+    ++i;
+    bits[6] = exponent & 4;
+    bits[5] = exponent & 2;
+    bits[4] = exponent & 1;
+    double fractionalPart = std::abs(number) - std::abs(static_cast<int>(number));
+    std::string fractionalBinary = "";
+    for (int j = 0; j < 4; ++j) {
+        fractionalPart *= 2;
+        if(fractionalPart >= 1.0)
+        {
+            fractionalBinary += "1";
+            fractionalPart -= 1.0;
+        }
+        else
+        {
+            fractionalBinary += "0";
+        }
+    }
+    std::string binary = integerBinary.substr(i) + fractionalBinary;
+    for (int j = 0; j < 4; ++j) {
+        if(binary[j] == '1')
+        {
+            bits[4 - j - 1] = true;
+        }
+        else
+        {
+            bits[4 - j - 1] = false;
+        }
+    }
+    int finalNumber = bits.to_ullong();
+    return decToHex(finalNumber);
+}
+
 string ALU::decToHex(const double& decNumber) {
     float number = decNumber;
     if(decNumber < 0)
@@ -167,9 +230,10 @@ void CU::jump(int reg1, int cell, Register& reg, int& counter) {
         counter = cell;
     }
 }
-void CU::halt(Register& reg,Memory& mem) {
+void CU::halt(Register& reg,Memory& mem, int& programCounter, int& programEnd) {
     reg.reset();
     mem.reset();
+    programCounter = programEnd = 10;
     std::cout << "---------------\n";
     std::cout << "| Program End |\n";
     std::cout << "---------------\n";
@@ -185,6 +249,11 @@ bool Machine::loadProgramFile(std::string& file) {
     }
     std::cout << "Enter the memory location to load the program in: ";
     std::cin >> programCounter;
+    while (inputStreamFailing())
+    {
+        std::cout << "Please enter a valid location: ";
+        std::cin >> programCounter;
+    }
     // store the program end in case the user entered another program after the provided one or entered individual instructions
     programEnd = programCounter;
     while(!programFile.eof())
@@ -251,7 +320,10 @@ void Machine::execute() {
             break;
         case 12:
             outputState();
-            cu.halt(registers,memory);
+            cu.halt(registers,memory,programCounter,programEnd);
+            return;
+        default:
+            std::cerr << "Invalid instruction\n";
             return;
     }
 }
@@ -261,8 +333,17 @@ void Machine::outputState() {
     std::cout << "Instruction Register: " << instructionRegister << '\n';
     std::cout << "Registers: ";
     std::string cell{};
+    double value{};
     for (int i = 0; i < 16; ++i) {
-        cell = alu.decToHex(registers.getCell(i));
+        value = registers.getCell(i);
+        if(value - int(value) != 0)
+        {
+            cell = alu.floatToHex(value);
+        }
+        else
+        {
+            cell = alu.decToHex(value);
+        }
         std::cout << "R" << i << " = " << (cell.length() == 1? "0" : "") << cell << ' ';
     }
     std::cout << '\n';

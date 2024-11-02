@@ -17,7 +17,6 @@ private:
 public:
     Register();
     double getCell(int index);
-    void setCell(int index, int value);
     void setCell(int index, double value);
     void reset();
 };
@@ -42,6 +41,7 @@ public:
     double hexToFloat(const string&);
     string decToHex(const double& decNumber);
     bool isValid(const string& hexString);
+    std::string floatToHex(double number);
     void addDecimal(int x1, int x2, int resultx, Register& reg);
     void addFloat(int x1, int x2, int resultx, Register& reg);
 };
@@ -55,7 +55,7 @@ public:
     void store(int, int, Register&, Memory&);
     void move(int, int, Register&);
     void jump(int, int, Register&, int&);
-    void halt(Register&,Memory&);
+    void halt(Register&,Memory&, int& programCounter, int& programEnd);
 
 };
 
