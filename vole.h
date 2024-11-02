@@ -31,7 +31,6 @@ public:
     Memory();
     std::string getCell(int);
     void setCell(int, std::string);
-    std::vector<std::string> instructionMemory;
     void reset();
 };
 
@@ -64,7 +63,8 @@ class Machine
 {
 private:
     std::fstream programFile;
-    int programCounter{};
+    int programCounter{10};
+    int programEnd{10};
     std::string instructionRegister{};
     Register registers;
     ALU alu;
@@ -76,6 +76,7 @@ public:
     void fetch();
     int decode(std::string, bool);
     void execute();
+    void insertInstruction();
     void outputState();
 };
 

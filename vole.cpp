@@ -53,15 +53,16 @@ std::string Memory::getCell(int index) {
 }
 
 void Memory::setCell(int index, std::string value) {
+    // divide the instruction into two bytes to insert in the memory one byte only for every location
     for (int i = 0; i < value.length(); i += 2) {
         memory[index] = value.substr(i,2);
         ++index;
     }
-//    memory[index] = value;
 }
+
+// reset the machine memory after halting from the program
 void Memory::reset() {
     std::fill(std::begin(memory), std::end(memory), "00");
-    instructionMemory.clear();
 }
 // End of Memory class
 
@@ -77,7 +78,7 @@ int ALU::hexToDec(const string& hexString, bool positiveOnly = false) {
     }
     return dec;
 }
-
+// Convert from hex to float using the (sign, exponent, mantissa) notation
 double ALU::hexToFloat(const std::string& hexString) {
     long long signBit, exponent;
     int decimal;
@@ -169,9 +170,9 @@ void CU::jump(int reg1, int cell, Register& reg, int& counter) {
 void CU::halt(Register& reg,Memory& mem) {
     reg.reset();
     mem.reset();
-    std::cout << "--------------------\n";
-    std::cout << "| Program Finished |\n";
-    std::cout << "--------------------\n";
+    std::cout << "---------------\n";
+    std::cout << "| Program End |\n";
+    std::cout << "---------------\n";
 }
 // Machine class
 
@@ -182,30 +183,45 @@ bool Machine::loadProgramFile(std::string& file) {
     {
         return false;
     }
+    std::cout << "Enter the memory location to load the program in: ";
+    std::cin >> programCounter;
+    // store the program end in case the user entered another program after the provided one or entered individual instructions
+    programEnd = programCounter;
     while(!programFile.eof())
     {
         programFile >> instruction;
-        memory.instructionMemory.push_back(instruction);
+        memory.setCell(programEnd, instruction) ;
+        programEnd += 2;
     }
     return true;
 }
-
+// Get the instructions from memory
 void Machine::fetch() {
-    instructionRegister = memory.instructionMemory[programCounter];
-    ++programCounter;
+    instructionRegister = memory.getCell(programCounter) + memory.getCell(programCounter + 1);
+    programCounter += 2;
 }
 
+// There are two possible situations in the decoding process
+// If we are decoding a numerical value for a mathematical operation, so it might be a positive or negative value
+// and if we are decoding a numerical value to get the register or memory location
+// In the second case we want the values to be positive always, that's why we provide a second parameter "positiveOnly"
 int Machine::decode(std::string instruction, bool positiveOnly = false) {
     return alu.hexToDec(instruction,positiveOnly);
 }
 
 void Machine::execute() {
-    if(memory.instructionMemory.empty())
+    // if the program memory is empty that's mean the user didn't load a program, so we alert the user about that
+    if(memory.getCell(programCounter) == "00")
     {
         std::cerr << "Please load a program first\n";
         return;
     }
     fetch();
+    // In the decoding instruction process we decode every possible combination and then from the type of the operation we provide the appropriate arguments
+    // That's mean even if the instruction is providing a memory location and not the two other registers
+    // we decode the instruction in the two ways (as there are three registers, or as there are one register and a memory location)
+    // This makes it easier as we won't make a big if-else condition to first check the type of the operation and see if it provides three registers or memory location
+    // and then decode the rest of the instruction to the corresponding operation
     int operation   = decode(string{instructionRegister[0]},true);
     int register1   = decode(string{instructionRegister[1]},true);
     int register2   = decode(string{instructionRegister[2]},true);
@@ -254,7 +270,7 @@ void Machine::outputState() {
     std::cout << "Memory: ";
     for (int i = 0; i < 256; ++i) {
         cell = memory.getCell(i);
-        if(i % 8 == 0)
+        if(i % 16 == 0)
         {
             std::cout << '\n';
         }
@@ -263,6 +279,15 @@ void Machine::outputState() {
     }
     std::cout << '\n';
 }
+
+void Machine::insertInstruction() {
+    std::string instruction;
+    std::cout << "Enter an instruction: ";
+    std::cin >> instruction;
+    memory.setCell(programEnd, instruction);
+    // as the instruction is 2 bytes and the memory can only hold one byte
+    programEnd += 2;
+}
 // End of Machine class
 
 // MainUI class
@@ -270,11 +295,9 @@ void Machine::outputState() {
 int MainUI::displayMenu() {
     std::cout << "a. Enter program file\n";
     std::cout << "b. Display machine state\n";
-    if(!fileName.empty())
-    {
-        std::cout << "c. Execute an instruction\n";
-    }
-    std::cout << "d. Exit machine\n";
+    std::cout << "c. Enter an instruction\n";
+    std::cout << "d. Execute an instruction\n";
+    std::cout << "e. Exit machine\n";
     char choice = inputChoice();
     switch (choice) {
         case 'a':
@@ -284,9 +307,12 @@ int MainUI::displayMenu() {
             machine.outputState();
             break;
         case 'c':
-            machine.execute();
+            machine.insertInstruction();
             break;
         case 'd':
+            machine.execute();
+            break;
+        case 'e':
             std::cout << "----------------------\n";
             std::cout << "| VOLE shutting down |\n";
             std::cout << "----------------------\n";
@@ -295,6 +321,7 @@ int MainUI::displayMenu() {
     return 1;
 }
 
+// Ask the user for the program file name
 void MainUI::inputFileName() {
     std::cout << "Enter program file name: ";
     std::cin >> fileName;
@@ -306,15 +333,18 @@ void MainUI::inputFileName() {
     std::cout << "File loaded successfully\n";
 }
 
+// Get the user choice from the Main menu options
 char MainUI::inputChoice() {
-    string choice1;
+    char choice{};
     std::cout << "Enter your choice: ";
-    getline(std::cin, choice1);
-    while (choice1.size() != 1 or choice1[0] < 'a' or choice1[0] > 'd')
+    std::cin >> choice;
+    while (choice < 'a' or choice > 'e')
     {
         std::cout << "Please choose an option from the above only\n";
         std::cout << "Enter your choice: ";
-        getline(std::cin, choice1);
+        std::cin >> choice;
     }
-    return choice1[0];
+    return choice;
 }
+
+// End of MainUI class
