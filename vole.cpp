@@ -418,12 +418,12 @@ void MainUI::inputFileName() {
 char MainUI::inputChoice() {
     string choice1;
     std::cout << "Enter your choice: ";
-    getline(std::cin, choice1);
+    getline(std::cin >> std::ws, choice1);
     while (choice1.size() != 1 or choice1[0] < 'a' or choice1[0] > 'e')
     {
         std::cout << "Please choose an option from the above only\n";
         std::cout << "Enter your choice: ";
-        getline(std::cin, choice1);
+        getline(std::cin >> std::ws, choice1);
     }
     return choice1[0];
 }
