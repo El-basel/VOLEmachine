@@ -416,16 +416,16 @@ void MainUI::inputFileName() {
 
 // Get the user choice from the Main menu options
 char MainUI::inputChoice() {
-    char choice{};
+    string choice1;
     std::cout << "Enter your choice: ";
-    std::cin >> choice;
-    while (choice < 'a' or choice > 'e')
+    getline(std::cin, choice1);
+    while (choice1.size() != 1 or choice1[0] < 'a' or choice1[0] > 'e')
     {
         std::cout << "Please choose an option from the above only\n";
         std::cout << "Enter your choice: ";
-        std::cin >> choice;
+        getline(std::cin, choice1);
     }
-    return choice;
+    return choice1[0];
 }
 
 // End of MainUI class
