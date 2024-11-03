@@ -215,18 +215,19 @@ void CU::load(int reg1, int cell, Register& reg, Memory& mem) {
 void CU::load(int reg1, double num, Register& reg) {
     reg.setCell(reg1, num);
 }
-void CU::store(int reg1, int loc, Register& reg, Memory& mem,int& programEnd,int& programcounter){
+bool CU::store(int reg1, int loc, Register& reg, Memory& mem,int& programEnd,int& programcounter){
     if (loc == 0) {
         std::cout << alu.decToHex(reg.getCell(reg1)) << '\n';
     }
     else if (loc < programEnd) {
         cout << "Error: Attempt to access restricted memory. Operation not permitted." << endl;
-        halt(reg, mem, programcounter, programEnd);
+        return 0;
     }
     else{
         int num = reg.getCell(reg1);
         mem.setCell(loc, alu.decToHex(num));
     }
+    return 1;
 }
 void CU::move(int reg1, int reg2, Register& reg) {
     reg.setCell(reg2, reg.getCell(reg1));
@@ -235,14 +236,6 @@ void CU::jump(int reg1, int cell, Register& reg, int& counter) {
     if (reg.getCell(reg1) == reg.getCell(0)) {
         counter = cell;
     }
-}
-void CU::halt(Register& reg,Memory& mem, int& programCounter, int& programEnd) {
-    reg.reset();
-    mem.reset();
-    programCounter = programEnd = 10;
-    std::cout << "---------------\n";
-    std::cout << "| Program End |\n";
-    std::cout << "---------------\n";
 }
 // Machine class
 
@@ -254,11 +247,25 @@ bool Machine::loadProgramFile(std::string& file) {
         return false;
     }
     std::cout << "Enter the memory location to load the program in: ";
-    std::cin >> programCounter;
-    while (inputStreamFailing())
-    {
-        std::cout << "Please enter a valid location: ";
-        std::cin >> programCounter;
+    string input;
+    while (true) {
+        getline(std::cin >> std::ws, input);
+        if (input.size() > 2) {
+            std::cout << "Error: Program counter exceeded maximum memory limit." << endl;
+            cout << "please enter a valid location: ";
+            continue;
+        }
+        else if (!alu.isValid(input)) {
+            cout << "Invalid input, please enter a valid location: ";
+            continue;
+        }
+        programCounter = stoi(input, nullptr, 16);
+        if (programCounter == 0) {
+            cout << "Error: Attempt to access restricted memory." << endl;
+            cout << "please enter a valid location: ";
+            continue;
+        }
+        break;
     }
     // store the program end in case the user entered another program after the provided one or entered individual instructions
     programEnd = programCounter;
@@ -269,6 +276,11 @@ bool Machine::loadProgramFile(std::string& file) {
         programEnd += 2;
     }
     return true;
+}
+void Machine::halt() {
+    registers.reset();
+    memory.reset();
+    programCounter = programEnd = 16;
 }
 // Get the instructions from memory
 void Machine::fetch() {
@@ -311,7 +323,9 @@ void Machine::execute() {
             cu.load(register1, pattern, registers);
             break;
         case 3:
-            cu.store(register1, memoryCell, registers, memory,programEnd,programCounter);
+            if (!cu.store(register1, memoryCell, registers, memory, programEnd, programCounter)) {
+                halt();
+            }
             break;
         case 4:
             cu.move(register2, register3, registers);
@@ -326,10 +340,14 @@ void Machine::execute() {
             break;
         case 12:
             outputState();
-            cu.halt(registers,memory,programCounter,programEnd);
+            halt();
+            std::cout << "---------------\n";
+            std::cout << "| Program End |\n";
+            std::cout << "---------------\n";
             return;
         default:
             std::cerr << "Invalid instruction\n";
+            halt();
             return;
     }
 }
@@ -384,7 +402,8 @@ int MainUI::displayMenu() {
     std::cout << "b. Display machine state\n";
     std::cout << "c. Enter an instruction\n";
     std::cout << "d. Execute an instruction\n";
-    std::cout << "e. Exit machine\n";
+    std::cout << "e. Halt program\n";
+    std::cout << "f. Exit machine\n";
     char choice = inputChoice();
     switch (choice) {
         case 'a':
@@ -399,7 +418,10 @@ int MainUI::displayMenu() {
         case 'd':
             machine.execute();
             break;
-        case 'e':
+        case'e':
+            machine.halt();
+            break;
+        case 'f':
             std::cout << "----------------------\n";
             std::cout << "| VOLE shutting down |\n";
             std::cout << "----------------------\n";
@@ -411,7 +433,7 @@ int MainUI::displayMenu() {
 // Ask the user for the program file name
 void MainUI::inputFileName() {
     std::cout << "Enter program file name: ";
-    std::cin >> fileName;
+    getline(std::cin >> std::ws, fileName);
     if(!machine.loadProgramFile(fileName))
     {
         std::cout << "File doesn't exist\n";
@@ -425,7 +447,7 @@ char MainUI::inputChoice() {
     string choice1;
     std::cout << "Enter your choice: ";
     getline(std::cin >> std::ws, choice1);
-    while (choice1.size() != 1 or choice1[0] < 'a' or choice1[0] > 'e')
+    while (choice1.size() != 1 or choice1[0] < 'a' or choice1[0] > 'f')
     {
         std::cout << "Please choose an option from the above only\n";
         std::cout << "Enter your choice: ";

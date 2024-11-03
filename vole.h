@@ -52,19 +52,17 @@ private:
 public:
     void load(int, int, Register&, Memory&);
     void load(int, double, Register&);
-    void store(int, int, Register&, Memory&,int&,int&);
+    bool store(int, int, Register&, Memory&,int&,int&);
     void move(int, int, Register&);
     void jump(int, int, Register&, int&);
-    void halt(Register&,Memory&, int& programCounter, int& programEnd);
-
 };
 
 class Machine
 {
 private:
     std::fstream programFile;
-    int programCounter{10};
-    int programEnd{10};
+    int programCounter{16};
+    int programEnd{16};
     std::string instructionRegister{};
     Register registers;
     ALU alu;
@@ -73,6 +71,7 @@ private:
 
 public:
     bool loadProgramFile(std::string&);
+    void halt();
     void fetch();
     int decode(std::string, bool);
     void execute();
