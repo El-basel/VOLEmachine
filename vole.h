@@ -52,7 +52,7 @@ private:
 public:
     void load(int, int, Register&, Memory&);
     void load(int, double, Register&);
-    void store(int, int, Register&, Memory&);
+    void store(int, int, Register&, Memory&,int&,int&);
     void move(int, int, Register&);
     void jump(int, int, Register&, int&);
     void halt(Register&,Memory&, int& programCounter, int& programEnd);

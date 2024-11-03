@@ -215,12 +215,18 @@ void CU::load(int reg1, int cell, Register& reg, Memory& mem) {
 void CU::load(int reg1, double num, Register& reg) {
     reg.setCell(reg1, num);
 }
-void CU::store(int reg1, int loc, Register& reg, Memory& mem) {
+void CU::store(int reg1, int loc, Register& reg, Memory& mem,int& programEnd,int& programcounter){
     if (loc == 0) {
         std::cout << alu.decToHex(reg.getCell(reg1)) << '\n';
     }
-    int num = reg.getCell(reg1);
-    mem.setCell(loc,alu.decToHex(num));
+    else if (loc < programEnd) {
+        cout << "Error: Attempt to access restricted memory. Operation not permitted." << endl;
+        halt(reg, mem, programcounter, programEnd);
+    }
+    else{
+        int num = reg.getCell(reg1);
+        mem.setCell(loc, alu.decToHex(num));
+    }
 }
 void CU::move(int reg1, int reg2, Register& reg) {
     reg.setCell(reg2, reg.getCell(reg1));
@@ -305,7 +311,7 @@ void Machine::execute() {
             cu.load(register1, pattern, registers);
             break;
         case 3:
-            cu.store(register1, memoryCell, registers, memory);
+            cu.store(register1, memoryCell, registers, memory,programEnd,programCounter);
             break;
         case 4:
             cu.move(register2, register3, registers);
@@ -331,9 +337,9 @@ void Machine::execute() {
 void Machine::outputState() {
     std::cout << "Program Counter: " << programCounter << '\n';
     std::cout << "Instruction Register: " << instructionRegister << '\n';
-    std::cout << "Registers: ";
     std::string cell{};
     double value{};
+    std::cout << '\n'<< setw(9)<< std::left << "Register" << setw(10) << std::right << "value" << '\n';
     for (int i = 0; i < 16; ++i) {
         value = registers.getCell(i);
         if(value - int(value) != 0)
@@ -344,7 +350,7 @@ void Machine::outputState() {
         {
             cell = alu.decToHex(value);
         }
-        std::cout << "R" << i << " = " << (cell.length() == 1? "0" : "") << cell << ' ';
+        std::cout << std::left <<'R' << std::hex << i << setw(15) << std::right << (cell.length() == 1 ? "0" : "")<< cell << '\n';
     }
     std::cout << '\n';
 
