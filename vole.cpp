@@ -8,17 +8,6 @@
 #include <cstdint>
 #include "vole.h"
 
-bool inputStreamFailing()
-{
-    if(std::cin.fail())
-    {
-        std::cin.clear();
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
-        return true;
-    }
-    return false;
-}
-
 // Register class
 Register::Register() {
     std::fill(std::begin(memory), std::end(memory), 0.0);
@@ -36,6 +25,7 @@ void Register::setCell(int index, double value) {
     }
     memory[index] = value;
 }
+// reset the machine registers after halting from the program
 void Register::reset() {
     std::fill(std::begin(memory), std::end(memory), 0.0);
 }
@@ -180,7 +170,7 @@ string ALU::decToHex(const double& decNumber) {
     ss << hex << uppercase << static_cast<int>(number);
     return ss.str();
 }
-
+// check if a given input is hex or not
 bool ALU::isValid(const string& hexString) {
     for (char c : hexString) {
         if (!isxdigit(c)) {
@@ -208,17 +198,23 @@ void ALU::addFloat(int x1, int x2, int resultx, Register& reg) {
 }
 // End of ALU class
 // CU class
+//load a register with contents of a given memory cell
 void CU::load(int reg1, int cell, Register& reg, Memory& mem) {
     int num = alu.hexToDec(mem.getCell(cell));
     reg.setCell(reg1, num);
 }
+//load a register with the input given
 void CU::load(int reg1, double num, Register& reg) {
     reg.setCell(reg1, num);
 }
+//store content of the register given in a memory cell given
 bool CU::store(int reg1, int loc, Register& reg, Memory& mem,int& programEnd,int& programcounter){
+    // if the location is zero we output the content of the given register
     if (loc == 0) {
         std::cout << alu.decToHex(reg.getCell(reg1)) << '\n';
     }
+    // check if the user wants to save content in a placw where memory is saved to avoid crashes
+    // return zero to let the machine class know that it needs to halt execution
     else if (loc < programEnd) {
         cout << "Error: Attempt to access restricted memory. Operation not permitted." << endl;
         return 0;
@@ -229,9 +225,12 @@ bool CU::store(int reg1, int loc, Register& reg, Memory& mem,int& programEnd,int
     }
     return 1;
 }
+//copy the content of register 1 to register 2
 void CU::move(int reg1, int reg2, Register& reg) {
     reg.setCell(reg2, reg.getCell(reg1));
 }
+//first compares between given register and register 0
+// if they are equal it jumps to the given memory cell to execute
 void CU::jump(int reg1, int cell, Register& reg, int& counter) {
     if (reg.getCell(reg1) == reg.getCell(0)) {
         counter = cell;
@@ -249,7 +248,9 @@ bool Machine::loadProgramFile(std::string& file) {
     std::cout << "Enter the memory location to load the program in: ";
     string input;
     while (true) {
+        //using getline to check if the user entered more than what we specified to avoid leaving input in the stream
         getline(std::cin >> std::ws, input);
+        //expected size of input is 2 as 'ff' is the largest number expected for memory.
         if (input.size() > 2) {
             std::cout << "Error: Program counter exceeded maximum memory limit." << endl;
             cout << "please enter a valid location: ";
@@ -260,6 +261,7 @@ bool Machine::loadProgramFile(std::string& file) {
             continue;
         }
         programCounter = stoi(input, nullptr, 16);
+        //as this memory place is saved for the machine for outputting to screen
         if (programCounter == 0) {
             cout << "Error: Attempt to access restricted memory." << endl;
             cout << "please enter a valid location: ";
