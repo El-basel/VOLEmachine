@@ -62,6 +62,7 @@ class Machine
 private:
     std::fstream programFile;
     int programCounter{16};
+    int programStart{16};
     int programEnd{16};
     std::string instructionRegister{};
     Register registers;

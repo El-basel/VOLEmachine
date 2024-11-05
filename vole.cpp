@@ -208,14 +208,14 @@ void CU::load(int reg1, double num, Register& reg) {
     reg.setCell(reg1, num);
 }
 //store content of the register given in a memory cell given
-bool CU::store(int reg1, int loc, Register& reg, Memory& mem,int& programEnd,int& programcounter){
+bool CU::store(int reg1, int loc, Register& reg, Memory& mem,int& programEnd,int& programStart){
     // if the location is zero we output the content of the given register
     if (loc == 0) {
         std::cout << alu.decToHex(reg.getCell(reg1)) << '\n';
     }
     // check if the user wants to save content in a placw where memory is saved to avoid crashes
     // return zero to let the machine class know that it needs to halt execution
-    else if (loc < programEnd) {
+    else if (loc > programStart and loc < programEnd) {
         cout << "Error: Attempt to access restricted memory. Operation not permitted." << endl;
         return 0;
     }
@@ -270,7 +270,7 @@ bool Machine::loadProgramFile(std::string& file) {
         break;
     }
     // store the program end in case the user entered another program after the provided one or entered individual instructions
-    programEnd = programCounter;
+    programEnd = programStart = programCounter;
     while(!programFile.eof())
     {
         programFile >> instruction;
@@ -282,7 +282,8 @@ bool Machine::loadProgramFile(std::string& file) {
 void Machine::halt() {
     registers.reset();
     memory.reset();
-    programCounter = programEnd = 16;
+    programCounter = programEnd = programStart = 16;
+    programFile.close();
 }
 // Get the instructions from memory
 void Machine::fetch() {
@@ -370,7 +371,7 @@ void Machine::outputState() {
         {
             cell = alu.decToHex(value);
         }
-        std::cout << std::left <<'R' << std::hex << i << setw(15) << std::right << (cell.length() == 1 ? "0" : "")<< cell << '\n';
+        std::cout << std::left <<'R' << std::hex << i << setw(15) << std::right << (cell.length() == 1 ? "0" + cell : "" + cell) << '\n';
     }
     std::cout << '\n';
 
