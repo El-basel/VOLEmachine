@@ -4,10 +4,24 @@
 #include <stdexcept>
 #include <fstream>
 #include <vector>
+#include "GLFW/glfw3.h"
+#include "imgui.h"
+#include "imgui/backends/imgui_impl_opengl3.h"
+#include "imgui/backends/imgui_impl_glfw.h"
+#include "imgui/misc/cpp/imgui_stdlib.h"
 using namespace std;
 
 #ifndef VOLE_H
 #define VOLE_H
+enum MachineFlags : int
+{
+    memory = 1,
+    registers,
+    IrAndPc,
+    insertInstruction,
+    execute,
+    halt,
+};
 
 class Register
 {
@@ -69,26 +83,35 @@ private:
     ALU alu;
     CU cu;
     Memory memory;
-
+    bool insert = true;
 public:
-    bool loadProgramFile(std::string&);
+    bool loadProgramFile(std::string&, std::string&);
     void halt();
     void fetch();
     int decode(std::string, bool);
-    void execute();
-    void insertInstruction();
-    void outputState();
+    int execute();
+    bool insertInstruction(std::string&, std::string&);
+    void outputState(MachineFlags);
+    void memoryOutput();
+    void registerOutput();
 };
 
 class MainUI
 {
 private:
-    Machine machine;
     std::string fileName{};
+    Machine machine;
+    bool programRunning = false;
+    bool insert = false;
 public:
-    int displayMenu();
-    void inputFileName();
+    bool inputError = false;
+    int  displayMenu(MachineFlags);
+    void inputFileName(bool &);
     char inputChoice();
+    std::string getFileName();
+    bool checkProgramRunning();
+    void popup();
+    void insertInstruction(bool);
 };
 
 #endif

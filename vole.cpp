@@ -211,6 +211,7 @@ void CU::load(int reg1, double num, Register& reg) {
 bool CU::store(int reg1, int loc, Register& reg, Memory& mem,int& programEnd,int& programStart){
     // if the location is zero we output the content of the given register
     if (loc == 0) {
+
         std::cout << alu.decToHex(reg.getCell(reg1)) << '\n';
     }
         // check if the user wants to save content in a placw where memory is saved to avoid crashes
@@ -238,7 +239,7 @@ void CU::jump(int reg1, int cell, Register& reg, int& counter) {
 }
 // Machine class
 
-bool Machine::loadProgramFile(std::string& file) {
+bool Machine::loadProgramFile(std::string& file, std::string& memoryLocation) {
     //used just for testing if the file exists or not
     fstream test;
     test.open(file);
@@ -255,30 +256,11 @@ bool Machine::loadProgramFile(std::string& file) {
     std::string instruction;
     std::cout << "Enter the memory location to load the program in: ";
     string input;
-    while (true) {
-        //using getline to check if the user entered more than what we specified to avoid leaving input in the stream
-        getline(std::cin >> std::ws, input);
-        //expected size of input is 2 as 'ff' is the largest number expected for memory.
-        if (input.size() > 2) {
-            std::cout << "Error: Program counter exceeded maximum memory limit." << endl;
-            cout << "please enter a valid location: ";
-            continue;
-        }
-        else if (!alu.isValid(input)) {
-            cout << "Invalid input, please enter a valid location: ";
-            continue;
-        }
-        programCounter = stoi(input, nullptr, 16);
-        //as this memory place is saved for the machine for outputting to screen
-        if (programCounter == 0) {
-            cout << "Error: Attempt to access restricted memory." << endl;
-            cout << "please enter a valid location: ";
-            continue;
-        }
-        break;
+    if(memoryLocation != "default")
+    {
+        programCounter = alu.hexToDec(memoryLocation, true);
+        programEnd = programStart = programCounter;
     }
-    // store the program end in case the user entered another program after the provided one or entered individual instructions
-    programEnd = programStart = programCounter;
     while(!programFile.eof())
     {
         programFile >> instruction;
@@ -292,6 +274,7 @@ void Machine::halt() {
     memory.reset();
     programCounter = programEnd = programStart = 16;
     programFile.close();
+    instructionRegister = "00";
 }
 // Get the instructions from memory
 void Machine::fetch() {
@@ -307,12 +290,12 @@ int Machine::decode(std::string instruction, bool positiveOnly = false) {
     return alu.hexToDec(instruction,positiveOnly);
 }
 
-void Machine::execute() {
+int Machine::execute() {
     // if the program memory is empty that's mean the user didn't load a program, so we alert the user about that
     if(memory.getCell(programCounter) == "00")
     {
         std::cerr << "Please load a program first\n";
-        return;
+        return 1;
     }
     fetch();
     // In the decoding instruction process we decode every possible combination and then from the type of the operation we provide the appropriate arguments
@@ -350,107 +333,224 @@ void Machine::execute() {
             cu.jump(register1, memoryCell, registers, programCounter);
             break;
         case 12:
-            outputState();
             halt();
             std::cout << "---------------\n";
             std::cout << "| Program End |\n";
             std::cout << "---------------\n";
-            return;
+            return 1;
         default:
             std::cerr << "Invalid instruction\n";
             halt();
-            return;
+            return 1;
     }
+    return 0;
 }
-
-void Machine::outputState() {
-    std::cout << "Program Counter: " << programCounter << '\n';
-    std::cout << "Instruction Register: " << instructionRegister << '\n';
+void Machine::memoryOutput()
+{
     std::string cell{};
-    double value{};
-    std::cout << '\n'<< setw(9)<< std::left << "Register" << setw(10) << std::right << "value" << '\n';
-    for (int i = 0; i < 16; ++i) {
-        value = registers.getCell(i);
-        if(value - int(value) != 0)
-        {
-            cell = alu.floatToHex(value);
+    if(ImGui::BeginTable("Memory",17, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
+    {
+        int index = 0;
+        ImGui::TableSetupColumn(" ");
+        for (int i = 0; i < 16; ++i) {
+            ImGui::TableSetupColumn(alu.decToHex(i).c_str());
         }
-        else
-        {
-            cell = alu.decToHex(value);
+        ImGui::TableHeadersRow();
+        for (int row = 0; row < 16; ++row) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text(alu.decToHex(row).c_str());
+            for (int column = 1; column < 17; ++column) {
+                ImGui::TableSetColumnIndex(column);
+                cell = memory.getCell(index);
+                ++index;
+                if(cell.length() == 1)
+                {
+                    cell = "0" + cell;
+                }
+                ImGui::Text(cell.c_str());
+            }
         }
-        std::cout << std::left <<'R' << std::hex << i << setw(15) << std::right << (cell.length() == 1 ? "0" + cell : "" + cell) << '\n';
+        ImGui::EndTable();
     }
-    std::cout << '\n';
-
-    std::cout << "Memory: ";
-    for (int i = 0; i < 256; ++i) {
-        cell = memory.getCell(i);
-        if(i % 16 == 0)
-        {
-            std::cout << '\n';
-        }
-        std::cout << std::setw(4) << std::setfill(' ');
-        std::cout << (cell.length() == 1? "0" + cell : "" + cell) << ' ';
-    }
-    std::cout << '\n';
 }
 
-void Machine::insertInstruction() {
-    std::string instruction;
-    std::cout << "Enter an instruction: ";
-    std::cin >> instruction;
-    memory.setCell(programEnd, instruction);
+void Machine::registerOutput()
+{
+    std::string cell{};
+    if(ImGui::BeginTable("Registers",2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
+    {
+        int index = 0;
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::Text("IR");
+        ImGui::TableSetColumnIndex(1);
+        ImGui::Text(instructionRegister.c_str());
+        for (int row = 0; row < 16; ++row) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            cell = "R" + alu.decToHex(row);
+            ImGui::Text(cell.c_str());
+            for (int column = 1; column < 2; ++column) {
+                ImGui::TableSetColumnIndex(column);
+                int value = registers.getCell(index);
+                if(value - int(value) != 0)
+                {
+                    cell = alu.floatToHex(value);
+                }
+                else
+                {
+                    cell = alu.decToHex(value);
+                }
+                if(cell.length() == 1)
+                {
+                    cell = "0" + cell;
+                }
+                ++index;
+                ImGui::Text(cell.c_str());
+            }
+        }
+        ImGui::EndTable();
+    }
+}
+
+void Machine::outputState(MachineFlags typeFlag) {
+    if(typeFlag == MachineFlags::memory)
+    {
+        memoryOutput();
+    }
+    else if (typeFlag == MachineFlags::registers)
+    {
+        registerOutput();
+    }
+    else if(typeFlag == MachineFlags::IrAndPc)
+    {
+        ImGui::Text("IR: ");
+        ImGui::SameLine();
+        ImGui::Text(instructionRegister.c_str());
+        ImGui::Text("PC: ");
+        ImGui::SameLine();
+        ImGui::Text(alu.decToHex(programCounter).c_str());
+    }
+}
+
+bool Machine::insertInstruction(std::string& instruction, std::string& memoryLocation) {
     // as the instruction is 2 bytes and the memory can only hold one byte
-    programEnd += 2;
+    int location;
+    if(memoryLocation == "default")
+    {
+        location = programEnd;
+    }
+    else
+    {
+        location = alu.hexToDec(memoryLocation);
+    }
+    if(alu.isValid(instruction) and programStart == programEnd)
+    {
+        memory.setCell(location, instruction);
+        programStart = programCounter = location;
+        programEnd += 2;
+        instruction = "";
+        memoryLocation = "";
+        return true;
+    }
+    if(alu.isValid(instruction) and (location < programStart or location >= programEnd))
+    {
+        memory.setCell(location, instruction);
+        programEnd += 2;
+        instruction = "";
+        memoryLocation = "";
+        return true;
+    }
+    else
+    {
+        instruction = "";
+        memoryLocation = "";
+        return false;
+    }
 }
 // End of Machine class
 
 // MainUI class
 
-int MainUI::displayMenu() {
-    std::cout << "a. Enter program file\n";
-    std::cout << "b. Display machine state\n";
-    std::cout << "c. Enter an instruction\n";
-    std::cout << "d. Execute an instruction\n";
-    std::cout << "e. Halt program\n";
-    std::cout << "f. Exit machine\n";
-    char choice = inputChoice();
+int MainUI::displayMenu(MachineFlags choice) {
     switch (choice) {
-        case 'a':
-            inputFileName();
+        case registers:
+            machine.outputState(registers);
             break;
-        case 'b':
-            machine.outputState();
+        case memory:
+            machine.outputState(memory);
             break;
-        case 'c':
-            machine.insertInstruction();
+        case IrAndPc:
+            machine.outputState(IrAndPc);
             break;
-        case 'd':
-            machine.execute();
+        case execute:
+            if(machine.execute())
+                programRunning = false;
             break;
-        case'e':
+        case halt:
             machine.halt();
+            programRunning = false;
             break;
-        case 'f':
-            std::cout << "----------------------\n";
-            std::cout << "| VOLE shutting down |\n";
-            std::cout << "----------------------\n";
-            return 0;
     }
     return 1;
 }
 
 // Ask the user for the program file name
-void MainUI::inputFileName() {
-    std::cout << "Enter program file name: ";
-    getline(std::cin >> std::ws, fileName);
-    if(!machine.loadProgramFile(fileName))
+void MainUI::inputFileName(bool &enterFileName) {
+    if(enterFileName)
     {
-        std::cout << "File doesn't exist\n";
-        return;
+        static std::string memoryLocation{"0A"};
+        ImGui::OpenPopup("Enter Program File Name");
+
+        // Always center this window when appearing
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+        if (ImGui::BeginPopupModal("Enter Program File Name", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            ImGui::Text("File Name:");
+            ImGui::InputText(":Name ",&fileName);
+            ImGui::Separator();
+            if(!programRunning)
+            {
+                ImGui::Text("Memory Location:");
+                ImGui::InputText(":Location ",&memoryLocation);
+                ImGui::Separator();
+            }
+            else
+            {
+                memoryLocation = "default";
+            }
+
+            if (ImGui::Button("OK", ImVec2(120, 0))) {
+                ImGui::CloseCurrentPopup();
+                if(machine.loadProgramFile(fileName, memoryLocation))
+                {
+                    std::cout << fileName << std::endl;
+                    std::cout << "Program loaded successfully" << std::endl;
+                    programRunning = true;
+                    memoryLocation = "0A";
+                }
+                else
+                {
+                    inputError = true;
+                    std::cerr << "Program didn't load" << std::endl;
+                    fileName = "";
+                    programRunning = false;
+                }
+                enterFileName = false;
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Cancel", ImVec2(120,0)))
+            {
+                fileName = "";
+                ImGui::CloseCurrentPopup();
+                enterFileName = false;
+            }
+            ImGui::EndPopup();
+        }
     }
-    std::cout << "File loaded successfully\n";
 }
 
 // Get the user choice from the Main menu options
@@ -458,7 +558,7 @@ char MainUI::inputChoice() {
     string choice1;
     std::cout << "Enter your choice: ";
     getline(std::cin >> std::ws, choice1);
-    while (choice1.size() != 1 or choice1[0] < 'a' or choice1[0] > 'f')
+    while (choice1.size() != 1 or choice1[0] < 'a' or choice1[0] > 'e')
     {
         std::cout << "Please choose an option from the above only\n";
         std::cout << "Enter your choice: ";
@@ -467,4 +567,77 @@ char MainUI::inputChoice() {
     return choice1[0];
 }
 
+std::string MainUI::getFileName() {
+    return fileName;
+}
+
+bool MainUI::checkProgramRunning() {
+    return programRunning;
+}
+
+// added
+void MainUI::popup()
+{
+    // Always center this window when appearing
+
+}
+
+// added
+void MainUI::insertInstruction(bool modify) {
+    if(modify)
+    {
+        insert = true;
+    }
+    if(insert)
+    {
+        static std::string instruction{};
+        static std::string memoryLocation{};
+        ImGui::OpenPopup("Insert Instruction");
+
+        // Always center this window when appearing
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+        if (ImGui::BeginPopupModal("Insert Instruction", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            ImGui::Text("Instruction (in hexadecimal):");
+            ImGui::SameLine();
+            ImGui::InputText(": Instruction",&instruction);
+            if(!programRunning)
+            {
+                ImGui::Text("Memory Location:");
+                ImGui::SameLine();
+                ImGui::InputText(": Location",&memoryLocation);
+            }
+            else
+            {
+                memoryLocation = "default";
+            }
+            ImGui::Separator();
+
+            if (ImGui::Button("OK", ImVec2(120, 0)))
+            {
+                ImGui::CloseCurrentPopup();
+                if(!instruction.empty() and machine.insertInstruction(instruction, memoryLocation))
+                {
+                    programRunning = true;
+                }
+                else
+                {
+                    programRunning = false;
+                    inputError = true;
+                }
+                insert = false;
+            }
+
+            ImGui::SameLine();
+            if(ImGui::Button("Cancel", ImVec2(120,0)))
+            {
+                insert = false;
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+    }
+}
 // End of MainUI class

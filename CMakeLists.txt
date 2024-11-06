@@ -24,7 +24,7 @@ set(IMGUI_SRC
 
 find_package(OpenGL REQUIRED)
 
-add_executable(openGLinClion mainGUI.cpp ${IMGUI_SRC} vole2.cpp vole2.h)
+add_executable(openGLinClion main.cpp ${IMGUI_SRC} vole.cpp vole.h)
 target_link_libraries(openGLinClion glfw ${OPENGL_gl_LIBRARY})
 
 if (WIN32)
