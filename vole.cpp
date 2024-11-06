@@ -239,12 +239,20 @@ void CU::jump(int reg1, int cell, Register& reg, int& counter) {
 // Machine class
 
 bool Machine::loadProgramFile(std::string& file) {
-    programFile.open(file);
-    std::string instruction;
-    if(!programFile)
+    //used just for testing if the file exists or not
+    fstream test;
+    test.open(file);
+    if(!test)
     {
         return false;
     }
+    test.close();
+    //to know if there is an opened file or not
+    if (programFile) {
+        halt();
+    }
+    programFile.open(file);
+    std::string instruction;
     std::cout << "Enter the memory location to load the program in: ";
     string input;
     while (true) {
