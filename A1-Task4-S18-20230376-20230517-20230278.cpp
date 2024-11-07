@@ -437,46 +437,52 @@ void Machine::insertInstruction() {
 // MainUI class
 
 int MainUI::displayMenu() {
-    bool asWhole = false;
-    machine.displayscreen();
-    std::cout << "a. Enter program file\n";
-    std::cout << "b. Display machine state\n";
-    std::cout << "c. Enter an instruction\n";
-    std::cout << "d. Execute an instruction\n";
-    std::cout << "e. Halt program\n";
-    std::cout << "f. Run Program as a whole\n";
-    std::cout << "g. Exit machine\n";
-    char choice = inputChoice();
-    switch (choice) {
-        case 'a':
-            inputFileName();
-            break;
-        case 'b':
-            machine.outputState();
-            break;
-        case 'c':
-            machine.insertInstruction();
-            break;
-        case 'd':
-            machine.execute(asWhole);
-            break;
-        case'e':
-            machine.halt();
-            break;
-        case 'f':
-            asWhole = true;
-            while(asWhole)
-            {
+    std::cout << "----------------------------\n";
+    std::cout << "| VOLE machine powering up |\n";
+    std::cout << "----------------------------\n";
+    while(true)
+    {
+
+        bool asWhole = false;
+        machine.displayscreen();
+        std::cout << "a. Enter program file\n";
+        std::cout << "b. Display machine state\n";
+        std::cout << "c. Enter an instruction\n";
+        std::cout << "d. Execute an instruction\n";
+        std::cout << "e. Halt program\n";
+        std::cout << "f. Run Program as a whole\n";
+        std::cout << "g. Exit machine\n";
+        char choice = inputChoice();
+        switch (choice) {
+            case 'a':
+                inputFileName();
+                break;
+            case 'b':
+                machine.outputState();
+                break;
+            case 'c':
+                machine.insertInstruction();
+                break;
+            case 'd':
                 machine.execute(asWhole);
-            }
-            break;
-        case 'g':
-            std::cout << "----------------------\n";
-            std::cout << "| VOLE shutting down |\n";
-            std::cout << "----------------------\n";
-            return 0;
+                break;
+            case'e':
+                machine.halt();
+                break;
+            case 'f':
+                asWhole = true;
+                while(asWhole)
+                {
+                    machine.execute(asWhole);
+                }
+                break;
+            case 'g':
+                std::cout << "----------------------\n";
+                std::cout << "| VOLE shutting down |\n";
+                std::cout << "----------------------\n";
+                return 0;
+        }
     }
-    return 1;
 }
 
 // Ask the user for the program file name
