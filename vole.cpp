@@ -307,11 +307,13 @@ int Machine::decode(std::string instruction, bool positiveOnly = false) {
     return alu.hexToDec(instruction,positiveOnly);
 }
 
-void Machine::execute() {
+void Machine::execute(bool& asWhole) {
     // if the program memory is empty that's mean the user didn't load a program, so we alert the user about that
+
     if(memory.getCell(programCounter) == "00")
     {
         std::cerr << "Please load a program first\n";
+        asWhole = false;
         return;
     }
     fetch();
@@ -351,6 +353,7 @@ void Machine::execute() {
             break;
         case 12:
             outputState();
+            asWhole = false;
             halt();
             std::cout << "---------------\n";
             std::cout << "| Program End |\n";
@@ -358,6 +361,7 @@ void Machine::execute() {
             return;
         default:
             std::cerr << "Invalid instruction\n";
+            asWhole = false;
             halt();
             return;
     }
@@ -409,11 +413,13 @@ void Machine::insertInstruction() {
 // MainUI class
 
 int MainUI::displayMenu() {
+    bool asWhole = false;
     std::cout << "a. Enter program file\n";
     std::cout << "b. Display machine state\n";
     std::cout << "c. Enter an instruction\n";
     std::cout << "d. Execute an instruction\n";
     std::cout << "e. Halt program\n";
+    std::cout << "g. Run Program as a whole\n";
     std::cout << "f. Exit machine\n";
     char choice = inputChoice();
     switch (choice) {
@@ -427,10 +433,17 @@ int MainUI::displayMenu() {
             machine.insertInstruction();
             break;
         case 'd':
-            machine.execute();
+            machine.execute(asWhole);
             break;
         case'e':
             machine.halt();
+            break;
+        case 'g':
+            asWhole = true;
+            while(asWhole)
+            {
+                machine.execute(asWhole);
+            }
             break;
         case 'f':
             std::cout << "----------------------\n";
@@ -458,7 +471,7 @@ char MainUI::inputChoice() {
     string choice1;
     std::cout << "Enter your choice: ";
     getline(std::cin >> std::ws, choice1);
-    while (choice1.size() != 1 or choice1[0] < 'a' or choice1[0] > 'f')
+    while (choice1.size() != 1 or choice1[0] < 'a' or choice1[0] > 'g')
     {
         std::cout << "Please choose an option from the above only\n";
         std::cout << "Enter your choice: ";

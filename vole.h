@@ -75,7 +75,7 @@ public:
     void halt();
     void fetch();
     int decode(std::string, bool);
-    void execute();
+    void execute(bool& asWhaole);
     void insertInstruction();
     void outputState();
 };
