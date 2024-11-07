@@ -26,11 +26,14 @@ class Memory
 private:
     std::string memory[256]{};
     int size = 256;
+    std::string screen{};
 public:
     Memory();
     std::string getCell(int);
     void setCell(int, std::string);
     void reset();
+    void setScreen(std::string);
+    std::string getScreen();
 };
 
 

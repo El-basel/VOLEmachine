@@ -43,6 +43,7 @@ std::string Memory::getCell(int index) {
     {
         throw out_of_range("Index out of bounds");
     }
+
     return memory[index];
 }
 
@@ -56,7 +57,17 @@ void Memory::setCell(int index, std::string value) {
 
 // reset the machine memory after halting from the program
 void Memory::reset() {
+    screen.clear();
     std::fill(std::begin(memory), std::end(memory), "00");
+}
+
+void Memory::setScreen(std::string value) {
+    screen.append(value);
+    screen.push_back(' ');
+}
+
+std::string Memory::getScreen() {
+    return screen;
 }
 // End of Memory class
 
@@ -211,7 +222,8 @@ void CU::load(int reg1, double num, Register& reg) {
 bool CU::store(int reg1, int loc, Register& reg, Memory& mem,int& programEnd,int& programStart){
     // if the location is zero we output the content of the given register
     if (loc == 0) {
-        std::cout << alu.decToHex(reg.getCell(reg1)) << '\n';
+        mem.setScreen(alu.decToHex(reg.getCell(reg1)));
+        std::cout << mem.getScreen() << '\n';
     }
     // check if the user wants to save content in a placw where memory is saved to avoid crashes
     // return zero to let the machine class know that it needs to halt execution
@@ -290,6 +302,7 @@ bool Machine::loadProgramFile(std::string& file) {
 void Machine::halt() {
     registers.reset();
     memory.reset();
+    instructionRegister.clear();
     programCounter = programEnd = programStart = 16;
     programFile.close();
 }
@@ -368,6 +381,7 @@ void Machine::execute(bool& asWhole) {
 }
 
 void Machine::outputState() {
+    std::cout << "Screen: " << memory.getScreen() << '\n';
     std::cout << "Program Counter: " << programCounter << '\n';
     std::cout << "Instruction Register: " << instructionRegister << '\n';
     std::string cell{};
@@ -419,8 +433,8 @@ int MainUI::displayMenu() {
     std::cout << "c. Enter an instruction\n";
     std::cout << "d. Execute an instruction\n";
     std::cout << "e. Halt program\n";
-    std::cout << "g. Run Program as a whole\n";
-    std::cout << "f. Exit machine\n";
+    std::cout << "f. Run Program as a whole\n";
+    std::cout << "g. Exit machine\n";
     char choice = inputChoice();
     switch (choice) {
         case 'a':
@@ -438,14 +452,14 @@ int MainUI::displayMenu() {
         case'e':
             machine.halt();
             break;
-        case 'g':
+        case 'f':
             asWhole = true;
             while(asWhole)
             {
                 machine.execute(asWhole);
             }
             break;
-        case 'f':
+        case 'g':
             std::cout << "----------------------\n";
             std::cout << "| VOLE shutting down |\n";
             std::cout << "----------------------\n";
