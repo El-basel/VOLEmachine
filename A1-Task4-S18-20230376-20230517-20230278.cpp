@@ -63,10 +63,14 @@ void Memory::reset() {
 }
 
 void Memory::addtoScreen(std::string value) {
-    int size = screenbuffer.str().size();
-    if (size % 16 == 0) screenbuffer << '\n';
-    if (value.size() == 1) value = "0" + value;
-    screenbuffer << setw(3) << value;
+    static int counter = 0;
+    static int lines = 1;
+    if ((counter + value.size()) > lines*10) {
+        ++lines;
+        screenbuffer << '\n';
+    }
+    screenbuffer << ' ' << value;
+    counter += value.size();
 }
 
 std::string Memory::getScreen() {
@@ -384,7 +388,7 @@ void Machine::execute(bool& asWhole) {
 }
 void Machine::displayscreen(){
     std::cout << "\n------- Screen -------\n";
-    std::cout << memory.getScreen();
+    std::cout << std::setw(10) << std::left <<memory.getScreen();
     std::cout << "\n----------------------\n";
 }
 void Machine::outputState() {
